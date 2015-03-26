@@ -1,34 +1,14 @@
 
-int time, time2;
-int fps = 60;
-int wait = 1000/fps;
-float gravity = 0.35;
-
-ParticleSystem ps;
 Scene scene;
 
 void setup() {
-  size(640, 360);
-  time = millis();//store the current time
-  time2 = millis();
-  ps = new ParticleSystem(new PVector(width/2, 50));
+  //size(640, 360);
+  size(1280, 800, P2D);
   scene = new Scene();
 }
 
 void draw() {
-
-  if (millis() - time2 >= 1000) {
-    ps.addParticle();
-    time2 = millis();
-  }
-
-  //check the difference between now and the previously stored time is greater than the wait interval
-  if (millis() - time >= wait) {
-    //    println("tick");//if it is, do something
-    background(255);
-    ps.run();
-    time = millis();//also update the stored time
-  }
+  scene.draw();
 }
 
 
@@ -45,8 +25,7 @@ class ParticleSystem {
   }
 
   void addParticle() {
-    //    float radius = random(5, 10);
-    float radius = 8;
+    float radius = random(8, 20);
     particles.add(new Particle(origin, radius));
   }
 
@@ -56,7 +35,6 @@ class ParticleSystem {
       Particle p = particles.get(i);
       p.update();
       p.checkBoundaryCollision();
-      p.handleScene(scene);
       if (p.isDead()) {
         particles.remove(i);
       }
@@ -66,8 +44,8 @@ class ParticleSystem {
     for (int i = particles.size ()-1; i >= 0; i--) {
       Particle p1 = particles.get(i);
       // Handle collisions with other particles
-      for (int j = ps.particles.size ()-1; j >= 0; j--) {
-        Particle p2 = ps.particles.get(j);
+      for (int j = particles.size ()-1; j >= 0; j--) {
+        Particle p2 = particles.get(j);
         if (p1 == p2) {
           continue;
         } else {
@@ -87,27 +65,143 @@ class ParticleSystem {
   }
 }
 
+class Medium {
 
-class Scene {
-  Scene() {
+  PVector location;
+  float w, h;
+  color strokeColor;
+  int alpha;
+  float buoyancy;
+  float drag;
+
+  Medium(PVector l, float w, float h) {
+    setup(l, w, h, color(0, 0, 0), 255, 0.02, 0.25);
   }
 
-  void display() {
-    color strokeColor = color(64, 164, 223);
-    float w = width;
-    float h = 0.2 * height;
-    float x = 0;
-    float y = height - h;
-    stroke(strokeColor, 50);
-    fill(strokeColor, 50);
+  Medium(PVector l, float w, float h, color c, int a, float d, float b) {
+    setup(l, w, h, c, a, d, b);
+  }
+
+  void setup(PVector l, float w, float h, color c, int a, float d, float b) {
+    location = l.get();
+    this.w = w;
+    this.h = h;
+    this.strokeColor = c;
+    this.alpha = a;
+
+    buoyancy = b;
+    drag = d;
+  }
+
+  void draw() {
+
+    float x = location.x;
+    float y = location.y;
+
+    stroke(strokeColor, alpha);
+    fill(strokeColor, alpha);
     rectMode(CORNER);
     rect(x, y, w, h);
+  }
+
+  void checkParticleCollision(Particle p) {
+
+    if (p.location.x > location.x && p.location.x < (location.x + w) ) {
+
+      // Water
+      //    float waterHeight = 0.3 * height;
+
+      if (p.location.y > location.y) {
+        // In Water
+
+        // Apply damping
+        p.velocity.add(PVector.mult(p.velocity, -drag));
+
+        // Apply buoyancy
+        p.velocity.add(new PVector(0.0, -buoyancy));
+      }
+    }
+    // Attractors
+
+
+    // Repellors
+  }
+}
+
+class Scene {
+
+  ParticleSystem ps;
+  ArrayList<Medium> mediums;
+  int time, time2;
+  int fps = 60;
+  int wait = 1000/fps;
+  int creationPeriod = 300;
+
+  Scene() {
+    setup();
+  }
+
+  void setup() {
+    time = millis();//store the current time
+    time2 = millis();
+    ps = new ParticleSystem(new PVector(width/2, 50));
+    mediums = new ArrayList<Medium>();
+
+    // Water
+    color waterColor = color(64, 164, 223);
+    int alpha = 150;
+    float w = 0.6*width;
+    float h = 0.3 * height;
+    float x = 0.4*width;
+    float y = height - h;
+    PVector loc1 = new PVector(x, y);
+    Medium m1 = new Medium(loc1, w, h, waterColor, alpha, 0.12, 0.45);
+    mediums.add(m1);
+
+    // Land
+    PVector loc2 = new PVector(0, y);
+    Medium m2 = new Medium(loc2, x, h, color(223, 164, 64), 150, 0.24, 0.3);
+    mediums.add(m2);
+  }
+
+  void draw() {
+
+    if (millis() - time2 >= creationPeriod) {
+      ps.addParticle();
+      time2 = millis();
+    }
+
+    //check the difference between now and the previously stored time is greater than the wait interval
+    if (millis() - time >= wait) {
+      background(255);
+      ps.run();
+
+      // Particle-Medium collisions
+      for (int i = mediums.size ()-1; i >= 0; i--) {
+        Medium m = mediums.get(i);
+        // Handle collisions with other particles
+        for (int j = ps.particles.size ()-1; j >= 0; j--) {
+          Particle p = ps.particles.get(j);
+          m.checkParticleCollision(p);
+        }
+      }
+
+      time = millis();//also update the stored time
+    }
+  }
+
+
+  void display() {
+
+    for (int i = mediums.size ()-1; i >= 0; i--) {
+      Medium m = mediums.get(i);
+      m.draw();
+    }
   }
 }
 
 
 // A simple Particle class
-
 class Particle {
   PVector location;
   PVector velocity;
@@ -116,6 +210,10 @@ class Particle {
   float mass;
   float radius;
   color strokeColor;
+
+  Particle() {
+    setup(new PVector(0, 0), 8, 8);
+  }
 
   Particle(PVector l) {
     setup(l, 8, 8);
@@ -130,49 +228,19 @@ class Particle {
   }
 
   void setup(PVector l, float r, float m) {
+    float gravity = 0.35;
     acceleration = new PVector(0, gravity);
-    velocity = new PVector(random(-5, 5), random(-3, 1));
+    velocity = new PVector(random(-10, 10), random(-3, 1));
     location = l.get();
     lifespan = 555.0;
-    strokeColor = color(255, 255, 255);
+    strokeColor = color(0, 0, 0);
     radius = r;
     mass = m;
-  }
-
-  void handleScene(Scene scene) {
-
-    // Water
-    float waterHeight = 0.2 * height;
-    if (location.y > (height - waterHeight) ) {
-      // In Water
-      strokeColor = color(0, 0, 255);
-
-      // Apply damping
-      float dampingFactor = 0.05;
-      velocity.add(PVector.mult(velocity, -dampingFactor));
-
-      // Apply boyancy
-      velocity.add(new PVector(0.0, -0.1));
-    } else {
-      strokeColor = color(0, 0, 0);
-
-      // Apply damping
-      float dampingFactor = 0.011;
-      velocity.add(PVector.mult(velocity, -dampingFactor));
-    }
-
-    // Attractors
-
-    // Repellors
   }
 
   // If there is inserction then apply forces to
   // each particle.
   void checkCollision(Particle other) {
-
-    //    if (true) {
-    //      return;
-    //    }
 
     // get distances between the balls components
     PVector bVect = PVector.sub(other.location, location);
@@ -280,6 +348,11 @@ class Particle {
     velocity.add(acceleration);
     location.add(velocity);
     lifespan -= 1.0;
+
+    // Apply drag
+    float drag = 0.010;
+    velocity.add(PVector.mult(velocity, -drag));
+
   }
 
   // Method to display
@@ -297,6 +370,23 @@ class Particle {
     } else {
       return false;
     }
+  }
+}
+
+class Magnet extends Particle {
+  float magnetism;
+
+  Magnet(PVector l, float m) {
+    super(l);
+    magnetism = m;
+  }
+
+  void applyForce(Particle p) {
+
+    // Get distance from particle
+    PVector v = PVector.sub(p.location, location);
+
+    p.velocity.add(v);
   }
 }
 
