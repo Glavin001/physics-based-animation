@@ -12,16 +12,129 @@ void draw() {
 }
 
 
+class Scene {
+
+  ParticleSystem ps;
+  ArrayList<Medium> mediums;
+
+  int time, time2;
+  int fps = 60;
+  int wait = 1000/fps;
+  int creationPeriod = 200;
+
+  Scene() {
+    setup();
+  }
+
+  void setup() {
+    time = millis();//store the current time
+    time2 = millis();
+    ps = new ParticleSystem(new PVector(width/2, 50));
+    mediums = new ArrayList<Medium>();
+
+    // Water
+    color waterColor = color(64, 164, 223);
+    int alpha = 150;
+    float w = 0.6*width;
+    float h = 0.3 * height;
+    float x = 0.4*width;
+    float y = height - h;
+    PVector loc1 = new PVector(x, y);
+    Medium me1 = new Medium(loc1, w, h, waterColor, alpha, 0.12, 0.45);
+    mediums.add(me1);
+
+    // Syrup / Very viscous liquid
+    PVector loc2 = new PVector(0, y);
+    Medium me2 = new Medium(loc2, x, h, color(223, 164, 64), 150, 0.24, 0.3);
+    mediums.add(me2);
+
+    // Magnets
+    // Attractor
+    PVector loc3 = new PVector(width/2, height/2);
+    Magnet ma1 = new Magnet(loc3, 5000.0);
+    ps.magnets.add(ma1);
+    
+    // Repellor
+    PVector loc4 = new PVector(1*width/5, 9*height/10);
+    Magnet ma2 = new Magnet(loc4, -3000.0);
+    ps.magnets.add(ma2);
+
+    
+  }
+
+  void draw() {
+
+    if (millis() - time2 >= creationPeriod) {
+      ps.addParticle();
+      time2 = millis();
+    }
+
+    //check the difference between now and the previously stored time is greater than the wait interval
+    if (millis() - time >= wait) {
+      background(255);
+      ps.run();
+
+      // Particle-Medium collisions
+      for (int i = mediums.size ()-1; i >= 0; i--) {
+        Medium m = mediums.get(i);
+        // Handle collisions with other particles
+        for (int j = ps.particles.size ()-1; j >= 0; j--) {
+          Particle p = ps.particles.get(j);
+          m.checkParticleCollision(p);
+        }
+      }
+
+      time = millis();//also update the stored time
+    }
+  }
+
+
+  void display() {
+    // Display mediums
+    for (int i = mediums.size ()-1; i >= 0; i--) {
+      Medium m = mediums.get(i);
+      m.draw();
+    }
+    
+    int t = millis();
+    // Move attractor (first magnet)
+    Magnet a = ps.magnets.get(0);
+    int periodX = 10*1000; // in milliseconds
+    float c = ((float) t % periodX) / periodX;
+    float x = width * c;
+    a.location.x = x;
+//    print(period, t, c, x, "\n");
+    int periodY = 2*1000; // in milliseconds
+    float d = (((float) t % periodY) / periodY)*360;
+    float y = 6*height/10 + sin(radians(d))*(height/20);
+    a.location.y = y;
+//    print(periodY, d, y, "\n");
+
+    // Move repeller (second magnet)
+    Magnet r = ps.magnets.get(1);
+    int periodX2 = 7*1000; // in milliseconds
+    float c2 = ((float) t % periodX2) / periodX2;
+    float x2 = width * c2;
+    r.location.x = x2;
+    float y2 = 8*height/10 + cos(radians(d))*(height/40);
+    r.location.y = y2;
+
+  }
+}
+
+
 // A class to describe a group of Particles
 // An ArrayList is used to manage the list of Particles 
 
 class ParticleSystem {
   ArrayList<Particle> particles;
+  ArrayList<Magnet> magnets;
   PVector origin;
 
   ParticleSystem(PVector location) {
     origin = location.get();
     particles = new ArrayList<Particle>();
+    magnets = new ArrayList<Magnet>();
   }
 
   void addParticle() {
@@ -37,6 +150,16 @@ class ParticleSystem {
       p.checkBoundaryCollision();
       if (p.isDead()) {
         particles.remove(i);
+      }
+    }
+
+    // Particle-Magnet
+    for (int i = magnets.size ()-1; i >= 0; i--) {
+      Magnet m = magnets.get(i);
+      // Handle collisions with other particles
+      for (int j = particles.size ()-1; j >= 0; j--) {
+        Particle p = particles.get(j);
+        m.applyForce(p);
       }
     }
 
@@ -59,6 +182,12 @@ class ParticleSystem {
       Particle p = particles.get(i);
       p.display();
     }
+    // Display all magnets
+    for (int i = magnets.size ()-1; i >= 0; i--) {
+      Magnet p = magnets.get(i);
+      p.display();
+    }
+
 
     // Display Scene
     scene.display();
@@ -109,12 +238,10 @@ class Medium {
     if (p.location.x > location.x && p.location.x < (location.x + w) ) {
 
       // Water
-      //    float waterHeight = 0.3 * height;
-
       if (p.location.y > location.y) {
         // In Water
 
-        // Apply damping
+        // Apply drag
         p.velocity.add(PVector.mult(p.velocity, -drag));
 
         // Apply buoyancy
@@ -128,79 +255,6 @@ class Medium {
   }
 }
 
-class Scene {
-
-  ParticleSystem ps;
-  ArrayList<Medium> mediums;
-  int time, time2;
-  int fps = 60;
-  int wait = 1000/fps;
-  int creationPeriod = 300;
-
-  Scene() {
-    setup();
-  }
-
-  void setup() {
-    time = millis();//store the current time
-    time2 = millis();
-    ps = new ParticleSystem(new PVector(width/2, 50));
-    mediums = new ArrayList<Medium>();
-
-    // Water
-    color waterColor = color(64, 164, 223);
-    int alpha = 150;
-    float w = 0.6*width;
-    float h = 0.3 * height;
-    float x = 0.4*width;
-    float y = height - h;
-    PVector loc1 = new PVector(x, y);
-    Medium m1 = new Medium(loc1, w, h, waterColor, alpha, 0.12, 0.45);
-    mediums.add(m1);
-
-    // Land
-    PVector loc2 = new PVector(0, y);
-    Medium m2 = new Medium(loc2, x, h, color(223, 164, 64), 150, 0.24, 0.3);
-    mediums.add(m2);
-  }
-
-  void draw() {
-
-    if (millis() - time2 >= creationPeriod) {
-      ps.addParticle();
-      time2 = millis();
-    }
-
-    //check the difference between now and the previously stored time is greater than the wait interval
-    if (millis() - time >= wait) {
-      background(255);
-      ps.run();
-
-      // Particle-Medium collisions
-      for (int i = mediums.size ()-1; i >= 0; i--) {
-        Medium m = mediums.get(i);
-        // Handle collisions with other particles
-        for (int j = ps.particles.size ()-1; j >= 0; j--) {
-          Particle p = ps.particles.get(j);
-          m.checkParticleCollision(p);
-        }
-      }
-
-      time = millis();//also update the stored time
-    }
-  }
-
-
-  void display() {
-
-    for (int i = mediums.size ()-1; i >= 0; i--) {
-      Medium m = mediums.get(i);
-      m.draw();
-    }
-  }
-}
-
-
 // A simple Particle class
 class Particle {
   PVector location;
@@ -210,6 +264,7 @@ class Particle {
   float mass;
   float radius;
   color strokeColor;
+  float gravity = 0.35;
 
   Particle() {
     setup(new PVector(0, 0), 8, 8);
@@ -228,9 +283,8 @@ class Particle {
   }
 
   void setup(PVector l, float r, float m) {
-    float gravity = 0.35;
     acceleration = new PVector(0, gravity);
-    velocity = new PVector(random(-10, 10), random(-3, 1));
+    velocity = new PVector(random(-10, 10), random(-3, 3));
     location = l.get();
     lifespan = 555.0;
     strokeColor = color(0, 0, 0);
@@ -352,7 +406,6 @@ class Particle {
     // Apply drag
     float drag = 0.010;
     velocity.add(PVector.mult(velocity, -drag));
-
   }
 
   // Method to display
@@ -379,14 +432,23 @@ class Magnet extends Particle {
   Magnet(PVector l, float m) {
     super(l);
     magnetism = m;
+    strokeColor = color(255, 0, 0);
+    gravity = 0.0;
+    mass = 1000000;
   }
 
   void applyForce(Particle p) {
 
     // Get distance from particle
     PVector v = PVector.sub(p.location, location);
+    v.normalize();
+    float d = PVector.dist(p.location, location);
+    float f = magnetism * 1/pow(d,2);
+    //print(f);
+    v.mult(f);
 
-    p.velocity.add(v);
-  }
+    p.velocity.sub(v);
+  
+}
 }
 
