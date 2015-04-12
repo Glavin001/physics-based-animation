@@ -1,142 +1,217 @@
 int num = 3; 
+Mesh mesh;
 Spring[] springs = new Spring[num]; 
+
 
 void setup() {
   size(640, 360);
   noStroke(); 
-  springs[0] = new Spring(240, 260, 40, 0.98, 8.0, 0.1, springs, 0); 
-  springs[1] = new Spring(320, 210, 120, 0.95, 9.0, 0.1, springs, 1); 
-  springs[2] = new Spring(180, 170, 200, 0.90, 9.9, 0.1, springs, 2);
+  mesh = new Mesh();
+  Particle p1 = new Particle(new PVector(240, 260), 20);
+  Particle p2 = new Particle(new PVector(320, 210), 20);
+  Particle p3 = new Particle(new PVector(180, 170), 30);
+  mesh.springs.add(new Spring(p1, p2, 0.98, 8.0, 0.1));
+  //  mesh.springs.add(new Spring(320, 210, 120, 0.95, 9.0, 0.1, springs, 1); 
+  //  mesh.springs.add(new Spring(180, 170, 200, 0.90, 9.9, 0.1, springs, 2);
 }
 
 void draw() {
-  background(51); 
-
-  for (Spring spring : springs) { 
-    spring.update(); 
-    spring.display();
-  }
+  mesh.run();
 }
 
-void mousePressed() {
-  for (Spring spring : springs) { 
-    spring.pressed();
+// A simple Particle class
+class Particle {
+  PVector location;
+  PVector velocity;
+  PVector acceleration;
+  float lifespan;
+  float mass;
+  float radius;
+  color strokeColor;
+  float gravity = 0.35;
+  float drag = 0.010;
+
+  Particle() {
+    setup(new PVector(0, 0), 8, 8);
   }
-}
 
-void mouseReleased() {
-  for (Spring spring : springs) { 
-    spring.released();
+  Particle(PVector l) {
+    setup(l, 8, 8);
   }
-}
 
-class Spring { 
-  // Screen values 
-  float xpos, ypos;
-  float tempxpos, tempypos; 
-  int size = 20; 
-  boolean over = false; 
-  boolean move = false; 
+  Particle(PVector l, float r) {
+    setup(l, r, r*0.1);
+  }
 
-  // Spring simulation constants 
-  float mass;       // Mass 
-  float k = 0.2;    // Spring constant 
-  float damp;       // Damping 
-  float rest_posx;  // Rest position X 
-  float rest_posy;  // Rest position Y 
+  Particle(PVector l, float r, float m) {
+    setup(l, r, m);
+  }
 
-  // Spring simulation variables 
-  //float pos = 20.0; // Position 
-  float velx = 0.0;   // X Velocity 
-  float vely = 0.0;   // Y Velocity 
-  float accel = 0;    // Acceleration 
-  float force = 0;    // Force 
+  void setup(PVector l, float r, float m) {
+    acceleration = new PVector(0, gravity);
+    velocity = new PVector(random(-10, 10), random(-3, 3));
+    location = l.get();
+    lifespan = 555.0;
+    strokeColor = color(0, 0, 0);
+    radius = r;
+    mass = m;
+  }
 
-  Spring[] friends;
-  int me;
+  void checkBoundaryCollision() {
 
-  // Constructor
-  Spring(float x, float y, int s, float d, float m, 
-  float k_in, Spring[] others, int id) { 
-    xpos = tempxpos = x; 
-    ypos = tempypos = y;
-    rest_posx = x;
-    rest_posy = y;
-    size = s;
-    damp = d; 
-    mass = m; 
-    k = k_in;
-    friends = others;
-    me = id;
-  } 
-
-  void update() { 
-    if (move) { 
-      rest_posy = mouseY; 
-      rest_posx = mouseX;
-    } 
-
-    force = -k * (tempypos - rest_posy);  // f=-ky 
-    accel = force / mass;                 // Set the acceleration, f=ma == a=f/m 
-    vely = damp * (vely + accel);         // Set the velocity 
-    tempypos = tempypos + vely;           // Updated position 
-
-    force = -k * (tempxpos - rest_posx);  // f=-ky 
-    accel = force / mass;                 // Set the acceleration, f=ma == a=f/m 
-    velx = damp * (velx + accel);         // Set the velocity 
-    tempxpos = tempxpos + velx;           // Updated position 
-
-
-    if ((overEvent() || move) && !otherOver() ) { 
-      over = true;
-    } else { 
-      over = false;
+    if (location.x > width-radius) {
+      location.x = width-radius;
+      velocity.x *= -1;
+    } else if (location.x <radius) {
+      location.x =radius;
+      velocity.x *= -1;
+    } else if (location.y > height-radius) {
+      location.y = height-radius;
+      velocity.y *= -1;
+    } else if (location.y < radius) {
+      location.y = radius;
+      velocity.y *= -1;
     }
-  } 
+  }
 
-  // Test to see if mouse is over this spring
-  boolean overEvent() {
-    float disX = tempxpos - mouseX;
-    float disY = tempypos - mouseY;
-    if (sqrt(sq(disX) + sq(disY)) < size/2 ) {
+  // Method to update location
+  void update() {
+    velocity.add(acceleration);
+    location.add(velocity);
+    //    lifespan -= 1.0;
+
+    // Apply drag
+    velocity.add(PVector.mult(velocity, -drag));
+  }
+
+  // Method to display
+  void display() {
+    stroke(strokeColor, lifespan);
+    fill(strokeColor, lifespan);
+    ellipseMode(RADIUS);
+    ellipse(location.x, location.y, radius, radius);
+  }
+
+  // Is the particle still useful?
+  boolean isDead() {
+    if (lifespan < 0.0) {
       return true;
     } else {
       return false;
     }
   }
+}
 
-  // Make sure no other springs are active
-  boolean otherOver() {
-    for (int i=0; i<num; i++) {
-      if (i != me) {
-        if (friends[i].over == true) {
-          return true;
-        }
+class Mesh {
+  ArrayList<Spring> springs;
+
+  Mesh() {
+    springs = new ArrayList<Spring>();
+  }
+
+  ArrayList<Particle> allParticles() {
+    ArrayList<Particle> particles = new ArrayList<Particle>();
+    for (Spring spring : springs) {
+      Particle p1 = spring.first();
+      Particle p2 = spring.second();
+      if (!particles.contains(p1)) {
+        particles.add(p1);
+      }
+      if (!particles.contains(p2)) {
+        particles.add(p2);
       }
     }
-    return false;
+    return particles;
   }
 
-  void display() { 
-    if (over) { 
-      fill(153);
-    } else { 
-      fill(255);
-    } 
-    ellipse(tempxpos, tempypos, size, size);
-  } 
+  void run() {
 
-  void pressed() { 
-    if (over) { 
-      move = true;
-    } else { 
-      move = false;
+//    background(51);
+    background(255);
+    ArrayList<Particle> particles = allParticles();
+
+    // Apply Springs
+    for (Spring spring : springs) { 
+      spring.update();
     }
+    // Step for each particle
+    for (Particle p : particles) {
+      p.update();
+      p.checkBoundaryCollision();
+    }
+
+    // Display all particles
+    for (Particle p : particles) {
+      p.display();
+    }
+    // Display all springs
+    for (Spring spring : springs) { 
+      spring.display();
+    }
+  }
+}
+
+class Spring {
+
+  Particle a;
+  Particle b;  
+
+  color springColor = color(64, 164, 223);
+  // Spring simulation constants
+  float k = 0.2;    // Spring constant 
+  float damp;       // Damping 
+
+  // Constructor
+  Spring(Particle p1, Particle p2, float d, float m, float k_in) { 
+    a = p1;
+    b = p2;
+    damp = d; 
+    k = k_in;
+  }
+
+  Particle first() {
+    return a;
+  }
+
+  Particle second() {
+    return b;
+  }
+
+  Particle[] particles() {
+    Particle[] ps = {
+      a, b
+    };
+    return ps;
   } 
 
-  void released() { 
-    move = false; 
-    rest_posx = xpos;
-    rest_posy = ypos;
+  void update() { 
+
+     // Calculate Rest position
+     PVector displacement = PVector.sub(a.location, b.location);
+     PVector midpoint = PVector.add(b.location, PVector.div(displacement, 2.0));
+     PVector restpoint = midpoint; // FIXME
+    
+     // First Particle     
+     float forceX = -k * (a.location.x - restpoint.x);  // f=-ky 
+     float accelx = forceX / a.mass;                 // Set the acceleration, f=ma == a=f/m 
+//     velx = damp * (velx + accel);         // Set the velocity 
+//     tempxpos = tempxpos + velx;           // Updated position 
+     float forceY = -k * (a.location.y - restpoint.y);  // f=-ky 
+     float accely = forceY / a.mass;                 // Set the acceleration, f=ma == a=f/m 
+//     vely = damp * (vely + accel);         // Set the velocity 
+//     tempypos = tempypos + vely;           // Updated position 
+
+    PVector v = new PVector(accelx, accely);
+    a.velocity.add(v);
+
+    // Second Particle
+    b.velocity.sub(v);
+
+  }
+
+  void display() {
+    stroke(springColor);
+    line(a.location.x, a.location.y, b.location.x, b.location.y);
   }
 } 
+

@@ -53,13 +53,11 @@ class Scene {
     PVector loc3 = new PVector(width/2, height/2);
     Magnet ma1 = new Magnet(loc3, 5000.0);
     ps.magnets.add(ma1);
-    
+
     // Repellor
     PVector loc4 = new PVector(1*width/5, 9*height/10);
     Magnet ma2 = new Magnet(loc4, -3000.0);
     ps.magnets.add(ma2);
-
-    
   }
 
   void draw() {
@@ -95,7 +93,7 @@ class Scene {
       Medium m = mediums.get(i);
       m.draw();
     }
-    
+
     int t = millis();
     // Move attractor (first magnet)
     Magnet a = ps.magnets.get(0);
@@ -103,12 +101,12 @@ class Scene {
     float c = ((float) t % periodX) / periodX;
     float x = width * c;
     a.location.x = x;
-//    print(period, t, c, x, "\n");
+    //    print(period, t, c, x, "\n");
     int periodY = 2*1000; // in milliseconds
     float d = (((float) t % periodY) / periodY)*360;
     float y = 6*height/10 + sin(radians(d))*(height/20);
     a.location.y = y;
-//    print(periodY, d, y, "\n");
+    //    print(periodY, d, y, "\n");
 
     // Move repeller (second magnet)
     Magnet r = ps.magnets.get(1);
@@ -118,7 +116,6 @@ class Scene {
     r.location.x = x2;
     float y2 = 8*height/10 + cos(radians(d))*(height/40);
     r.location.y = y2;
-
   }
 }
 
@@ -443,12 +440,11 @@ class Magnet extends Particle {
     PVector v = PVector.sub(p.location, location);
     v.normalize();
     float d = PVector.dist(p.location, location);
-    float f = magnetism * 1/pow(d,2);
+    float f = magnetism * 1/pow(d, 2);
     //print(f);
     v.mult(f);
 
     p.velocity.sub(v);
-  
-}
+  }
 }
 
