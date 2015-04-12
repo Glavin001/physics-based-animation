@@ -9,8 +9,10 @@ void setup() {
   mesh = new Mesh();
   Particle p1 = new Particle(new PVector(240, 260), 20);
   Particle p2 = new Particle(new PVector(320, 210), 20);
-  Particle p3 = new Particle(new PVector(180, 170), 30);
+  Particle p3 = new Particle(new PVector(180, 170), 20);
   mesh.springs.add(new Spring(p1, p2, 0.98, 8.0, 0.1));
+//  mesh.springs.add(new Spring(p2, p3, 0.98, 8.0, 0.1));
+//  mesh.springs.add(new Spring(p3, p1, 0.98, 8.0, 0.1));
   //  mesh.springs.add(new Spring(320, 210, 120, 0.95, 9.0, 0.1, springs, 1); 
   //  mesh.springs.add(new Spring(180, 170, 200, 0.90, 9.9, 0.1, springs, 2);
 }
@@ -126,7 +128,7 @@ class Mesh {
 
   void run() {
 
-//    background(51);
+    //    background(51);
     background(255);
     ArrayList<Particle> particles = allParticles();
 
@@ -186,26 +188,23 @@ class Spring {
 
   void update() { 
 
-     // Calculate Rest position
-     PVector displacement = PVector.sub(a.location, b.location);
-     PVector midpoint = PVector.add(b.location, PVector.div(displacement, 2.0));
-     PVector restpoint = midpoint; // FIXME
-    
-     // First Particle     
-     float forceX = -k * (a.location.x - restpoint.x);  // f=-ky 
-     float accelx = forceX / a.mass;                 // Set the acceleration, f=ma == a=f/m 
-//     velx = damp * (velx + accel);         // Set the velocity 
-//     tempxpos = tempxpos + velx;           // Updated position 
-     float forceY = -k * (a.location.y - restpoint.y);  // f=-ky 
-     float accely = forceY / a.mass;                 // Set the acceleration, f=ma == a=f/m 
-//     vely = damp * (vely + accel);         // Set the velocity 
-//     tempypos = tempypos + vely;           // Updated position 
+    // Calculate Rest position
+    PVector displacement = PVector.sub(a.location, b.location);
+    PVector midpoint = PVector.add(b.location, PVector.div(displacement, 2.0));
+    displacement.normalize();
+    PVector slope = displacement;
 
-    PVector v = new PVector(accelx, accely);
-    a.velocity.add(v);
+    float springSize = 30.0;
+
+    // First Particle
+    PVector restpointA = PVector.add(midpoint, PVector.mult(slope, springSize) );
+    PVector forceA = PVector.mult(PVector.sub(a.location, restpointA), -k);
+    a.velocity.add(forceA);
 
     // Second Particle
-    b.velocity.sub(v);
+    PVector restpointB = PVector.sub(midpoint, PVector.mult(slope, springSize) );
+    PVector forceB = PVector.mult(PVector.sub(b.location, restpointB), -k);
+    b.velocity.add(forceB);
 
   }
 
