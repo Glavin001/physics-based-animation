@@ -10,7 +10,7 @@
 
 ## Features
 
-- [✓] 1. Particle Simulation
+### [✓] 1. Particle Simulation
 
   Create a Particle class or structure that keeps track of (at least) position and velocity for each particle, as well as lifespan. Initial velocities should be easy to modify. It is recommended that you should be able to draw particles in two modes: either as circles (with a radius), or as points. Use your particle class to create simulations that demonstrate the following features:
 
@@ -35,8 +35,20 @@ its velocity.
 
   Create a particle that repels other particles, i.e. pushes them away. Place a few such particles in a scene with hundreds (or thousands) of particles which are being “blown” in some direction (eg. via a global force). The repel force should get stronger as the particles approach each other. Add some walls to the scene to create various turbulent effects. How does this look when the particles leave traces?
 
+#### Screenshots
 
-- [✓] 2. Mass-spring Simulation
+##### 1. Wall & Inter-particle collisions + Viscous Mediums
+![viscous medium and collisions](https://cloud.githubusercontent.com/assets/1885333/6838781/e393cf3a-d33d-11e4-8ecd-f817b84bb078.gif)
+
+##### 2. Wall & Particle Collisions + Viscous Mediums + Moving Attractor & Repellor
+
+Top red particle is moving attactor.
+Bottom red particle is moving repellor.
+
+![particle_system](https://cloud.githubusercontent.com/assets/1885333/6839608/fa5bb758-d349-11e4-8696-7c0c32940fc0.gif)
+
+
+### [✓] 2. Mass-spring Simulation
 
   - [✓] 2.1 Step 1: One pair (2 particles, 1 dampened spring)
 
@@ -50,23 +62,12 @@ its velocity.
 
   Create several meshes of particles, with adjacent particles connected by springs. Start with a narrow mesh (e.g. 3x2). Allow the meshes to drop on the floor and get squished. Try a non-rectangular mesh (e.g. a wheel with a point in the middle).
 
-  - [✓] 2.4 Step 4: Actively-controlled mesh.
+  - [ ] 2.4 Step 4: Actively-controlled mesh.
 
   Create a mesh in which the rest lengths of the springs varies with time. Are you able to create a mesh that crawls? (You will need to implement a friction model to do so).
 
-## Screenshots
+#### Screenshot
 
-### 1. Wall & Inter-particle collisions + Viscous Mediums
-![viscous medium and collisions](https://cloud.githubusercontent.com/assets/1885333/6838781/e393cf3a-d33d-11e4-8ecd-f817b84bb078.gif)
-
-### 2. Wall & Particle Collisions + Viscous Mediums + Moving Attractor & Repellor
-
-Top red particle is moving attactor.
-Bottom red particle is moving repellor.
-
-![particle_system](https://cloud.githubusercontent.com/assets/1885333/6839608/fa5bb758-d349-11e4-8696-7c0c32940fc0.gif)
-
-
-### 3. 3x2 Particle Spring Mesh with extra springs for support
+##### 3x2 Particle Spring Mesh with extra springs for support
 
 ![mesh](https://cloud.githubusercontent.com/assets/1885333/7104695/e9d93d42-e0c8-11e4-8b05-36d18ea9b4ce.gif)
